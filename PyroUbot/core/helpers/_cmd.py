@@ -6,11 +6,13 @@ from PyroUbot import *
 from PyroUbot.config import OWNER_ID
 from PyroUbot.config import DEVS
 from .emoji import *
+from PyroUbot.core.database.variabel import *
 
 async def if_sudo(_, client, message):
+    sudo_users = await get_var(client.me.id, "SUDO_USERS") or []
     is_user = message.from_user if message.from_user else message.sender_chat
     is_self = bool(message.from_user and message.from_user.is_self or getattr(message, "outgoing", False))
-    return is_user.id in is_self
+    return is_user.id in sudo_users or is_self
 
 class PY:
     @staticmethod
@@ -135,16 +137,17 @@ class PY:
     @staticmethod
     def UBOT(command, filter=None):
         if filter is None:
-            filter = filters.me
+            filter = filters.create(if_sudos)
 
         def decorator(func):
             @ubot.on_message(ubot.cmd_prefix(command) & filter)
             async def wrapped_func(client, message):
                 return await func(client, message)
-
             return wrapped_func
 
         return decorator
+                                                   
+
 
 
     @staticmethod
@@ -230,8 +233,4 @@ class PY:
 
         return function
 
-    @staticmethod
-    def INDRI(command):
-        def decorator(func):
-            return ubot.on_message(filters.user(DEVS) & filters.command(command, "") & ~filters.me)(func)
-        return decorator
+    
